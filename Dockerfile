@@ -43,7 +43,7 @@ RUN mkdir -p /app/models
 # 8. Pre-download models (optional)
 RUN for lang in eng khm mya; do \
     wget -q https://dl.fbaipublicfiles.com/mms/tts/${lang}.tar.gz -O /app/models/${lang}.tar.gz && \
-    tar zxf /app/models/${lang}.tar.gz -C /app/models && \
+    tar --no-same-owner -zxf /app/models/${lang}.tar.gz -C /app/models && \
     rm /app/models/${lang}.tar.gz; \
     done
 
