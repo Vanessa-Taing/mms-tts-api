@@ -141,3 +141,25 @@ async def debug_text(text: str):
         }
     except Exception as e:
         raise HTTPException(400, detail=str(e))
+    
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Get port from environment variable or default to 5000
+    port = int(os.environ.get("PORT", 5000))
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    
+    # Start the server
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=port,
+        log_config=None,  # Use default logging config
+        access_log=True
+    )

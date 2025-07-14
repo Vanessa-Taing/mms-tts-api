@@ -47,4 +47,6 @@ RUN for lang in eng khm mya; do \
     rm /app/models/${lang}.tar.gz; \
     done
 
+EXPOSE 5000
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000"]
