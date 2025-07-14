@@ -1,7 +1,14 @@
-# Dockerfile
-FROM python:3.10.11-slim-buster
+# Use updated base image
+FROM python:3.10.13-slim-bookworm
 
 WORKDIR /app
+
+# Set UTF-8 locale by default
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app/vits \
+    UROMAN_DIR=/app/uroman
 
 # 1. Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,9 +18,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Install requirements (required for VITS build)
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 2. Install core Python dependencies first
+RUN pip install --no-cache-dir numpy Cython==0.29.21
 
 # 3. Clone and setup VITS
 RUN git clone https://github.com/jaywalnut310/vits.git && \
@@ -21,24 +27,24 @@ RUN git clone https://github.com/jaywalnut310/vits.git && \
     mkdir -p monotonic_align && \
     python setup.py build_ext --inplace
 
-# 5. Copy application files (separate from requirements for layer caching)
+# 4. Clone uroman
+RUN git clone https://github.com/isi-nlp/uroman.git ${UROMAN_DIR}
+
+# 5. Install remaining Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 6. Copy application
 COPY app ./app
 
-# 6. Set environment variables
-ENV PYTHONPATH=/app/vits
+# 7. Create models directory
+RUN mkdir -p /app/models
 
-# 7. Create models directory and pre-download models
-RUN mkdir -p /app/models && \
-    for lang in eng khm mya; do \
-        wget -q https://dl.fbaipublicfiles.com/mms/tts/${lang}.tar.gz -O /app/models/${lang}.tar.gz && \
-        tar zxf /app/models/${lang}.tar.gz -C /app/models && \
-        rm /app/models/${lang}.tar.gz; \
+# 8. Pre-download models (optional)
+RUN for lang in eng khm mya; do \
+    wget -q https://dl.fbaipublicfiles.com/mms/tts/${lang}.tar.gz -O /app/models/${lang}.tar.gz && \
+    tar zxf /app/models/${lang}.tar.gz -C /app/models && \
+    rm /app/models/${lang}.tar.gz; \
     done
 
-# 8. Clean up to reduce image size (optional)
-RUN apt-get remove -y build-essential && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
-
-# 9. Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000"]
